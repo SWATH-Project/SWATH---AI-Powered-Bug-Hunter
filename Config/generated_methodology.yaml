@@ -1,0 +1,487 @@
+ai:
+  methodology_engine:
+    enabled: false
+  report_generator:
+    enabled: true
+    include_tags_in_prompt: true
+    max_tokens: 4096
+    model: claude-sonnet-4-20250514
+    provider: anthropic
+    report_sections:
+    - Executive Summary
+    - Target Overview
+    - Attack Surface Summary
+    - High-Priority Findings
+    - Technology Stack Analysis
+    - Subdomain Table (Top 20)
+    - Vulnerability Details
+    - Recommended Next Steps
+    - Remediation Guidance
+budget:
+  action_on_exceeded: warn
+  enabled: true
+  max_requests_per_phase:
+    phase_1_passive_recon: 2000
+    phase_2_secrets_osint: 500
+    phase_3_asset_discovery: 1500
+    phase_4_surface_intelligence: 2000
+    phase_5_enumeration: 1000
+    phase_6_content_discovery: 2000
+    phase_7_vuln_scan: 1500
+  max_requests_total: 8000
+  warn_at_percent: 80
+global_defaults:
+  enabled: true
+  output_format: txt
+  rate_limit: null
+  retries: 1
+  timeout: 300
+meta:
+  ai_guided: true
+  author: SWATH Professional Team
+  description: Trimmed to 16 essential tools. What real bug bounty hunters actually
+    use.
+  iterative: false
+  name: Professional Recon
+  version: '1.0'
+phases:
+  phase_1_passive_recon:
+    depends_on: []
+    description: Quick subdomain enumeration using 3 best sources. No slow OSINT.
+    label: Passive Recon (Fast)
+    output_files:
+      subdomains_merged: all_subdomains.txt
+      subdomains_raw: raw/phase1_subdomains_raw.txt
+    parallel: true
+    tags_emitted:
+      has_subdomains: Found at least 1 subdomain
+      large_scope: More than 500 subdomains (trigger sampling later)
+      subdomain_count: Total count of unique subdomains
+      wildcard_detected: Wildcard DNS present (affects brute-forcing)
+    tools:
+      crtsh:
+        binary: null
+        config:
+          api_url: https://crt.sh/?q=%.{domain}&output=json
+          include_expired: false
+        default_flags: null
+        enabled: true
+        extra_args: null
+        output_file: raw/crtsh.txt
+        timeout: 60
+        weight: light
+      subfinder:
+        binary: subfinder
+        config:
+          max_time: 180
+          sources: certificate,dns,dnsdumpster,github,gitlab,virustotal
+          threads: 50
+        default_flags: -d {domain} -silent -all -recursive
+        enabled: true
+        extra_args: ''
+        output_file: raw/subfinder.txt
+        timeout: 180
+        weight: light
+    weight: light
+  phase_2_secrets_osint:
+    depends_on:
+    - phase_1_passive_recon
+    description: Fast scan for leaked credentials. Avoid slow GitHub dorking.
+    input_files:
+      subdomains: processed/all_subdomains.txt
+    label: Quick Secrets Scan
+    output_files:
+      gitleaks_results: raw/gitleaks.json
+      secrets_found: secrets_found.json
+    parallel: false
+    tags_emitted:
+      exposed_env_files: .env files accessible on live hosts
+      high_value_secrets: AWS keys, database creds, admin passwords
+      secrets_found: Any credentials, tokens, keys found
+      tokens_in_github: GitHub tokens, NPM tokens, etc
+    tools:
+      gitleaks:
+        binary: gitleaks
+        config:
+          config_path: null
+          max-time: 3m
+          redact: true
+          threads: 4
+        default_flags: detect --source . --report-path {output_file} --no-git
+        enabled: true
+        extra_args: ''
+        output_file: raw/gitleaks.json
+        timeout: 180
+        weight: light
+      trufflehog:
+        binary: trufflehog
+        config:
+          concurrency: 4
+          max_workers: 4
+          only_verified: false
+        default_flags: github --org={domain} --json --fail
+        enabled: true
+        extra_args: ''
+        output_file: raw/trufflehog.json
+        timeout: 180
+        weight: light
+    weight: light
+  phase_3_asset_discovery:
+    depends_on:
+    - phase_1_passive_recon
+    description: Probe subdomains, check open ports, take screenshots for context.
+    input_files:
+      subdomains_file: processed/all_subdomains.txt
+    label: Live Host Discovery
+    output_files:
+      live_hosts: live_hosts.json
+      live_hosts_txt: live_hosts.txt
+      screenshots_dir: raw/screenshots/
+    parallel: false
+    tags_emitted:
+      live_host_count: Number of live hosts
+      live_hosts_found: At least one HTTP/HTTPS host detected
+      screenshots_available: Visual reconnaissance captured
+      ssl_issues: SSL/TLS misconfigurations detected
+    tools:
+      httpx:
+        binary: httpx
+        config:
+          follow_redirects: true
+          rate_limit: 100
+          tech_detect: true
+          threads: 50
+          timeout_per_host: 5
+        default_flags: -l {input_file} -o {output_file} -json -silent -title -status-code
+          -tech-detect -follow-redirects
+        enabled: true
+        extra_args: ''
+        output_file: raw/httpx.json
+        timeout: 300
+        weight: medium
+      naabu:
+        binary: naabu
+        config:
+          ports: top-1000
+          rate: 1000
+          retries: 1
+          timeout: 3s
+        default_flags: -l {input_file} -o {output_file} -silent -top-ports 1000
+        enabled: true
+        extra_args: ''
+        output_file: raw/naabu.txt
+        timeout: 240
+        weight: light
+    weight: medium
+  phase_4_surface_intelligence:
+    conditional_tools:
+    - always: true
+      binary: whatweb
+      config:
+        aggression: 1
+        threads: 25
+      default_flags: -i {input_file} --log-json={output_file} -q
+      extra_args: ''
+      output_file: raw/whatweb.json
+      timeout: 600
+      tool: whatweb
+      weight: light
+    depends_on:
+    - phase_3_asset_discovery
+    description: Classify technologies. This phase's tags determine everything that
+      follows.
+    input_files:
+      live_hosts: processed/live_hosts.json
+      live_hosts_txt: processed/live_hosts.txt
+    label: Tech Stack Analysis
+    output_files:
+      surface_map: surface_intel.json
+      tech_stack: tech_stack.json
+    parallel: false
+    tags_emitted:
+      admin_panels: Admin login paths detected
+      has_apache: Apache
+      has_api: API endpoints detected
+      has_auth: Login/auth pages detected
+      has_cloud_assets: S3 buckets, Azure, GCP storage
+      has_cms: CMS platform identified (WordPress, Drupal, etc)
+      has_drupal: Drupal detected
+      has_graphql: GraphQL endpoint found
+      has_java: Java app server (Tomcat, JBoss)
+      has_joomla: Joomla detected
+      has_magento: Magento detected
+      has_nginx: Nginx web server
+      has_nodejs: Node.js/Express
+      has_php: PHP detected
+      has_s3: Amazon S3 specifically
+      has_wordpress: WordPress specifically
+    weight: medium
+  phase_5_enumeration:
+    conditional_tools:
+    - always: true
+      binary: katana
+      config:
+        concurrency: 10
+        depth: 3
+        headless: false
+        js_crawl: true
+        rate_limit: 150
+      default_flags: -list {input_file} -o {output_file} -silent -jc -kf all -d 3
+      extra_args: ''
+      output_file: raw/katana.txt
+      timeout: 300
+      tool: katana
+      weight: medium
+    - always: true
+      binary: gau
+      config:
+        providers: wayback,commoncrawl
+        threads: 5
+      default_flags: '{domain} --o {output_file} --threads 5 --blacklist png,jpg,gif,svg,ico,css'
+      extra_args: ''
+      output_file: raw/gau.txt
+      timeout: 1200
+      tool: gau
+      weight: light
+    - always: true
+      binary: paramspider
+      config:
+        level: high
+        threads: 10
+      default_flags: -d {domain} -o {output_file}
+      extra_args: ''
+      output_file: raw/paramspider.txt
+      timeout: 180
+      tool: paramspider
+      weight: light
+    - always: false
+      binary: arjun
+      config:
+        threads: 10
+        wordlist: null
+      default_flags: -u https://{domain} -oJ {output_file} -t 10
+      extra_args: ''
+      if_tag: has_api
+      output_file: raw/arjun.json
+      timeout: 180
+      tool: arjun
+      weight: light
+    - always: false
+      binary: null
+      config:
+        endpoint_paths:
+        - /graphql
+        - /api/graphql
+        - /v1/graphql
+        timeout: 30
+      default_flags: null
+      extra_args: null
+      if_tag: has_graphql
+      output_file: raw/graphql_schema.json
+      timeout: 120
+      tool: graphql_voyager
+      weight: light
+    depends_on:
+    - phase_4_surface_intelligence
+    description: Crawl and enumerate URLs, parameters, and JS files. Focus on high-value
+      targets.
+    input_files:
+      live_hosts: processed/live_hosts.json
+      live_hosts_txt: processed/live_hosts.txt
+    label: Endpoint Enumeration
+    output_files:
+      all_urls: all_urls.txt
+      js_files: js_files.txt
+      parameters: parameters.json
+    parallel: false
+    tags_emitted:
+      api_endpoints_found: API paths discovered
+      graphql_exists: GraphQL endpoint confirmed
+      js_files_found: JavaScript files for analysis
+      large_endpoint_set: More than 1000 unique URLs
+      params_found: URL parameters discovered
+    weight: medium
+  phase_6_content_discovery:
+    conditional_tools:
+    - always: true
+      binary: ffuf
+      config:
+        filter_size: 100
+        match_codes: 200,201,204,301,302,307,308,401,403,405
+        rate_limit: null
+        threads: 50
+        wordlist: /usr/share/dirb/wordlists/common.txt
+      default_flags: -u https://{domain}/FUZZ -w {wordlist} -o {output_file} -of json
+        -mc 200,201,301,302,307,308,401,403,405 -t 50 -ac -s
+      extra_args: ''
+      output_file: raw/ffuf.json
+      timeout: 600
+      tool: ffuf
+      weight: heavy
+    - always: false
+      binary: wpscan
+      config:
+        api_token: null
+        enumerate: ap,tt,m
+      default_flags: --url https://{domain} --output {output_file} --format json
+      extra_args: ''
+      if_tag: has_wordpress
+      output_file: raw/wpscan_paths.json
+      timeout: 300
+      tool: wpscan
+      weight: medium
+    depends_on:
+    - phase_4_surface_intelligence
+    - phase_5_enumeration
+    description: Brute-force common paths. Only runs if enough live hosts warrant
+      it.
+    input_files:
+      all_urls: processed/all_urls.txt
+      live_hosts: processed/live_hosts.json
+      live_hosts_txt: processed/live_hosts.txt
+    label: Content Discovery
+    output_files:
+      discovered_paths: discovered_paths.json
+      interesting_paths: interesting_paths.txt
+    parallel: false
+    tags_emitted:
+      admin_panel_found: Admin/dashboard path discovered
+      api_docs_found: API documentation (swagger, redoc)
+      backup_files_found: Backup files (.bak, .old, .zip)
+      exposed_env: .env file accessible
+      exposed_git: .git directory accessible
+      login_pages: Login forms discovered
+    weight: heavy
+  phase_7_vuln_scan:
+    conditional_tools:
+    - always: true
+      binary: nuclei
+      config:
+        bulk_size: 50
+        concurrency: 25
+        rate_limit: 100
+        severity: critical,high,medium
+        templates: cves,exposures,takeovers
+        update_templates: true
+      default_flags: -l {all_urls} -o {output_file} -json -silent
+      extra_args: ''
+      output_file: raw/nuclei.json
+      timeout: 900
+      tool: nuclei
+      weight: heavy
+    - always: false
+      binary: nuclei
+      config:
+        severity: critical,high
+      default_flags: -l {all_urls} -o {output_file} -json -silent -t default-logins,exposures/tokens
+      extra_args: ''
+      if_tag: has_auth
+      output_file: raw/nuclei_auth.json
+      timeout: 300
+      tool: nuclei_auth
+      weight: medium
+    - always: true
+      binary: subjack
+      config:
+        threads: 100
+        timeout: 10
+      default_flags: -w {subdomains_file} -o {output_file} -ssl -timeout 30 -c ~/.swath/fingerprints.json
+      extra_args: ''
+      output_file: raw/subjack.txt
+      timeout: 300
+      tool: subjack
+      weight: light
+    - always: false
+      binary: dalfox
+      config:
+        follow_redirects: true
+        timeout: 10
+        worker: 80
+      default_flags: file {params_file} -o {output_file} --silence --no-spinner
+      extra_args: ''
+      if_tag: params_found
+      output_file: raw/dalfox.json
+      timeout: 300
+      tool: dalfox
+      weight: medium
+    - always: false
+      binary: sqlmap
+      config:
+        dbms: null
+        level: 2
+        risk: 2
+        tamper: null
+        threads: 4
+      default_flags: -m {params_file} --batch --output-dir={output_file} --level=2
+        --risk=2 --threads=4
+      extra_args: ''
+      if_tag: has_critical_params
+      output_file: raw/sqlmap/
+      timeout: 600
+      tool: sqlmap
+      weight: heavy
+    depends_on:
+    - phase_5_enumeration
+    - phase_6_content_discovery
+    description: Run only high-signal scanners. Skip noisy, low-value tools.
+    input_files:
+      all_urls: processed/all_urls.txt
+      live_hosts: processed/live_hosts.json
+      live_hosts_txt: processed/live_hosts.txt
+      parameters: processed/parameters.json
+      subdomains_file: processed/all_subdomains.txt
+    label: Vulnerability Scanning
+    output_files:
+      nuclei_results: raw/nuclei.json
+      takeovers: takeovers.txt
+      vulnerabilities: vulnerabilities.json
+    parallel: false
+    tags_emitted:
+      cors_misconfig: CORS misconfiguration
+      critical_found: Critical severity vulnerability
+      high_found: High severity vulnerability
+      medium_found: Medium severity vulnerability
+      open_redirect: Open redirect vulnerability
+      sqli_found: SQL injection found
+      takeover_found: Subdomain takeover possible
+      xss_found: XSS vulnerability (reflected/stored)
+    weight: heavy
+resource_monitor:
+  check_before_each_tool: true
+  enabled: true
+  machine_profile: standard
+  profiles:
+    standard:
+      cpu_threshold: 80
+      ram_threshold: 85
+      wait_seconds: 15
+scope:
+  allow_wildcards: true
+  out_of_scope_action: skip
+  strict_mode: true
+wordlists:
+  base_dir: ~/.swath/wordlists
+  directories:
+    default: raft-medium-directories.txt
+    fast: directory-list-2.3-small.txt
+    large: raft-large-directories.txt
+  extensions:
+    default:
+    - php
+    - asp
+    - aspx
+    - jsp
+    - html
+    - js
+    - json
+    - txt
+    - bak
+    - zip
+    - tar
+    - gz
+  parameters:
+    default: burp-parameter-names.txt
+  subdomains:
+    custom: null
+    default: all.txt
+    fast: top-1000000.txt
