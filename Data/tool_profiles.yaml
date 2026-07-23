@@ -1,0 +1,778 @@
+# SWATH Tool Resource Profiles
+# Empirical measurements for adaptive scheduling
+# All values are approximate, measured on typical hardware
+
+tool_profiles:
+  # PHASE 1: PASSIVE RECON (Light tools - I/O bound)
+  # -------------------------------------------------
+  subfinder:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params:
+      threads:
+        value: 50
+        memory_per_unit_mb: 3
+        cpu_per_unit: 0.02
+        min: 5
+        max: 200
+      rate_limit:
+        value: 150
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+        min: 30
+        max: 500
+    estimated_time_min: 10
+    category: "passive"
+
+  amass:
+    phase: "phase_1_passive_recon"
+    phase_weight: "heavy"  # Actually heavy, but typically runs in Phase 1
+    base_memory_mb: 400
+    base_cpu_cores: 1.0
+    scalable_params:
+      threads:
+        value: 15
+        memory_per_unit_mb: 15
+        cpu_per_unit: 0.1
+        min: 1
+        max: 20
+      timeout:
+        value: 600
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+        min: 60
+        max: 1800
+    estimated_time_min: 25
+    category: "passive"
+
+  crtsh:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 50
+    base_cpu_cores: 0.1
+    scalable_params: {}
+    estimated_time_min: 2
+    category: "passive"
+
+  theharvester:
+    phase: "phase_1_passive_recon"
+    phase_weight: "medium"
+    base_memory_mb: 200
+    base_cpu_cores: 0.5
+    scalable_params:
+      limit:
+        value: 500
+        memory_per_unit_mb: 0.1
+        cpu_per_unit: 0.001
+        min: 50
+        max: 2000
+    estimated_time_min: 8
+    category: "passive"
+
+  assetfinder:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 80
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 3
+    category: "passive"
+
+  chaos:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.3
+    scalable_params: {}
+    estimated_time_min: 3
+    category: "passive"
+
+  findomain:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 80
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 2
+    category: "passive"
+
+  waybackurls:
+    phase: "phase_1_passive_recon"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.2
+    scalable_params:
+      threads:
+        value: 5
+        memory_per_unit_mb: 5
+        cpu_per_unit: 0.05
+        min: 1
+        max: 20
+    estimated_time_min: 5
+    category: "passive"
+
+  # PHASE 2: SECRETS & OSINT (Light-Medium)
+  # -------------------------------------------------
+  gitleaks:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "medium"
+    base_memory_mb: 300
+    base_cpu_cores: 1.0
+    scalable_params:
+      threads:
+        value: 10
+        memory_per_unit_mb: 20
+        cpu_per_unit: 0.1
+        min: 1
+        max: 20
+    estimated_time_min: 15
+    category: "secrets"
+
+  trufflehog:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "medium"
+    base_memory_mb: 400
+    base_cpu_cores: 1.2
+    scalable_params:
+      concurrency:
+        value: 8
+        memory_per_unit_mb: 30
+        cpu_per_unit: 0.15
+        min: 1
+        max: 20
+    estimated_time_min: 20
+    category: "secrets"
+
+  github_dorking:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params:
+      max_results_per_dork:
+        value: 10
+        memory_per_unit_mb: 5
+        cpu_per_unit: 0.02
+        min: 5
+        max: 50
+    estimated_time_min: 10
+    category: "secrets"
+
+  secretfinder:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "medium"
+    base_memory_mb: 200
+    base_cpu_cores: 0.5
+    scalable_params: {}
+    estimated_time_min: 15
+    category: "secrets"
+
+  jsluice:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params: {}
+    estimated_time_min: 8
+    category: "secrets"
+
+  linkfinder:
+    phase: "phase_2_secrets_osint"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params: {}
+    estimated_time_min: 8
+    category: "secrets"
+
+  # PHASE 3: LIVE ASSET DISCOVERY (Light-Medium)
+  # -------------------------------------------------
+  httpx:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "medium"
+    base_memory_mb: 150
+    base_cpu_cores: 0.5
+    scalable_params:
+      threads:
+        value: 50
+        memory_per_unit_mb: 2
+        cpu_per_unit: 0.01
+        min: 10
+        max: 200
+      rate_limit:
+        value: 150
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+        min: 30
+        max: 500
+    estimated_time_min: 10
+    category: "discovery"
+
+  dnsx:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.3
+    scalable_params:
+      threads:
+        value: 100
+        memory_per_unit_mb: 1
+        cpu_per_unit: 0.01
+        min: 10
+        max: 300
+    estimated_time_min: 8
+    category: "discovery"
+
+  naabu:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "heavy"  # Port scanning is CPU/network intensive
+    base_memory_mb: 400
+    base_cpu_cores: 2.0
+    scalable_params:
+      rate:
+        value: 1000
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0.1
+        min: 100
+        max: 5000
+      ports:
+        value: "top-1000"
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+    estimated_time_min: 30
+    category: "discovery"
+
+  puredns:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "medium"
+    base_memory_mb: 200
+    base_cpu_cores: 0.5
+    scalable_params:
+      resolvers:
+        value: null
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+    estimated_time_min: 15
+    category: "discovery"
+
+  gowitness:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "heavy"
+    base_memory_mb: 600
+    base_cpu_cores: 1.5
+    scalable_params:
+      threads:
+        value: 20
+        memory_per_unit_mb: 15
+        cpu_per_unit: 0.1
+        min: 5
+        max: 50
+    estimated_time_min: 45
+    category: "discovery"
+
+  asnmap:
+    phase: "phase_3_asset_discovery"
+    phase_weight: "light"
+    base_memory_mb: 80
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 5
+    category: "discovery"
+
+  # PHASE 4: SURFACE INTELLIGENCE (Medium-H Heavy)
+  # -------------------------------------------------
+  whatweb:
+    phase: "phase_4_surface_intelligence"
+    phase_weight: "medium"
+    base_memory_mb: 250
+    base_cpu_cores: 0.8
+    scalable_params:
+      aggression:
+        value: 1
+        memory_per_unit_mb: 50
+        cpu_per_unit: 0.3
+        min: 1
+        max: 3
+      threads:
+        value: 25
+        memory_per_unit_mb: 5
+        cpu_per_unit: 0.05
+        min: 5
+        max: 50
+    estimated_time_min: 12
+    category: "surface_intel"
+
+  wappalyzer_cli:
+    phase: "phase_4_surface_intelligence"
+    phase_weight: "medium"
+    base_memory_mb: 300
+    base_cpu_cores: 0.5
+    scalable_params:
+      timeout_per_host:
+        value: 10
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+    estimated_time_min: 15
+    category: "surface_intel"
+
+  nmap_service:
+    phase: "phase_4_surface_intelligence"
+    phase_weight: "heavy"
+    base_memory_mb: 500
+    base_cpu_cores: 2.0
+    scalable_params:
+      intensity:
+        value: 5
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0.2
+        min: 1
+        max: 9
+    estimated_time_min: 60  # Can be much longer on large targets
+    category: "surface_intel"
+
+  shodan_cli:
+    phase: "phase_4_surface_intelligence"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 5
+    category: "surface_intel"
+
+  censys_cli:
+    phase: "phase_4_surface_intelligence"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 5
+    category: "surface_intel"
+
+  # PHASE 5: DEEP ENUMERATION (Heavy - Crawlers)
+  # -------------------------------------------------
+  katana:
+    phase: "phase_5_enumeration"
+    phase_weight: "heavy"
+    base_memory_mb: 100
+    base_cpu_cores: 0.5
+    scalable_params:
+      depth:
+        value: 3
+        memory_per_unit_mb: 100
+        cpu_per_unit: 0.5
+        min: 1
+        max: 5
+      concurrency:
+        value: 10
+        memory_per_unit_mb: 20
+        cpu_per_unit: 0.1
+        min: 5
+        max: 50
+      js_crawl:
+        value: true
+        memory_impact_mb: 200
+        cpu_impact: 0.5
+    estimated_time_min: 30
+    category: "enumeration"
+
+  gau:
+    phase: "phase_5_enumeration"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params:
+      threads:
+        value: 5
+        memory_per_unit_mb: 10
+        cpu_per_unit: 0.05
+        min: 1
+        max: 20
+    estimated_time_min: 15
+    category: "enumeration"
+
+  gospider:
+    phase: "phase_5_enumeration"
+    phase_weight: "heavy"
+    base_memory_mb: 300
+    base_cpu_cores: 1.0
+    scalable_params:
+      concurrent:
+        value: 10
+        memory_per_unit_mb: 25
+        cpu_per_unit: 0.15
+        min: 5
+        max: 30
+      depth:
+        value: 3
+        memory_per_unit_mb: 80
+        cpu_per_unit: 0.4
+        min: 1
+        max: 5
+    estimated_time_min: 35
+    category: "enumeration"
+
+  paramspider:
+    phase: "phase_5_enumeration"
+    phase_weight: "medium"
+    base_memory_mb: 250
+    base_cpu_cores: 0.8
+    scalable_params: {}
+    estimated_time_min: 20
+    category: "enumeration"
+
+  gf_extract:
+    phase: "phase_5_enumeration"
+    phase_weight: "light"
+    base_memory_mb: 100
+    base_cpu_cores: 0.2
+    scalable_params: {}
+    estimated_time_min: 5
+    category: "enumeration"
+
+  graphql_voyager:
+    phase: "phase_5_enumeration"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params: {}
+    estimated_time_min: 10
+    category: "enumeration"
+
+  arjun:
+    phase: "phase_5_enumeration"
+    phase_weight: "heavy"
+    base_memory_mb: 300
+    base_cpu_cores: 0.8
+    scalable_params:
+      threads:
+        value: 10
+        memory_per_unit_mb: 30
+        cpu_per_unit: 0.1
+        min: 1
+        max: 20
+    estimated_time_min: 30
+    category: "enumeration"
+
+  # PHASE 6: CONTENT DISCOVERY (VERY HEAVY - Brute Force)
+  # -------------------------------------------------
+  ffuf:
+    phase: "phase_6_content_discovery"
+    phase_weight: "heavy"
+    base_memory_mb: 200
+    base_cpu_cores: 1.0
+    scalable_params:
+      threads:
+        value: 50
+        memory_per_unit_mb: 10
+        cpu_per_unit: 0.05
+        min: 10
+        max: 200
+      rate_limit:
+        value: null  # Unlimited by default
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+        min: 50
+        max: 2000
+    estimated_time_min: 90
+    category: "content_discovery"
+
+  dirsearch:
+    phase: "phase_6_content_discovery"
+    phase_weight: "heavy"
+    base_memory_mb: 400
+    base_cpu_cores: 1.5
+    scalable_params:
+      threads:
+        value: 30
+        memory_per_unit_mb: 8
+        cpu_per_unit: 0.05
+        min: 10
+        max: 100
+      extensions:
+        value: "php,asp,aspx,jsp,html,js,json,txt,bak,zip"
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+    estimated_time_min: 60
+    category: "content_discovery"
+
+  feroxbuster:
+    phase: "phase_6_content_discovery"
+    phase_weight: "heavy"
+    base_memory_mb: 300
+    base_cpu_cores: 1.0
+    scalable_params:
+      threads:
+        value: 50
+        memory_per_unit_mb: 8
+        cpu_per_unit: 0.05
+        min: 10
+        max: 200
+      depth:
+        value: 3
+        memory_per_unit_mb: 50
+        cpu_per_unit: 0.2
+        min: 1
+        max: 5
+    estimated_time_min: 75
+    category: "content_discovery"
+
+  wpscan:
+    phase: "phase_6_content_discovery"
+    phase_weight: "medium"
+    base_memory_mb: 150
+    base_cpu_cores: 0.5
+    scalable_params:
+      enumerate:
+        value: "ap,at,tt,cb,dbe,u,m"
+        memory_impact_mb: 100
+        cpu_impact: 0.3
+    estimated_time_min: 45
+    category: "content_discovery"
+
+  s3scanner:
+    phase: "phase_6_content_discovery"
+    phase_weight: "medium"
+    base_memory_mb: 200
+    base_cpu_cores: 0.5
+    scalable_params: {}
+    estimated_time_min: 20
+    category: "content_discovery"
+
+  cloud_enum:
+    phase: "phase_6_content_discovery"
+    phase_weight: "heavy"
+    base_memory_mb: 350
+    base_cpu_cores: 1.0
+    scalable_params: {}
+    estimated_time_min: 30
+    category: "content_discovery"
+
+  # PHASE 7: VULNERABILITY SCANNING (VERY HEAVY)
+  # -------------------------------------------------
+  nuclei:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "very_heavy"
+    base_memory_mb: 500
+    base_cpu_cores: 1.5
+    scalable_params:
+      concurrency:
+        value: 25
+        memory_per_unit_mb: 8
+        cpu_per_unit: 0.1
+        min: 5
+        max: 150
+      bulk_size:
+        value: 50
+        memory_per_unit_mb: 2
+        cpu_per_unit: 0.02
+        min: 10
+        max: 200
+    estimated_time_min: 60
+    category: "vuln_scan"
+
+  nuclei_cms:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "heavy"
+    base_memory_mb: 600
+    base_cpu_cores: 1.5
+    scalable_params:
+      concurrency:
+        value: 20
+        memory_per_unit_mb: 8
+        cpu_per_unit: 0.1
+        min: 5
+        max: 100
+    estimated_time_min: 30
+    category: "vuln_scan"
+
+  nuclei_auth:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "medium"
+    base_memory_mb: 400
+    base_cpu_cores: 1.0
+    scalable_params:
+      concurrency:
+        value: 15
+        memory_per_unit_mb: 8
+        cpu_per_unit: 0.1
+        min: 5
+        max: 50
+    estimated_time_min: 20
+    category: "vuln_scan"
+
+  subjack:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "medium"
+    base_memory_mb: 250
+    base_cpu_cores: 0.8
+    scalable_params:
+      threads:
+        value: 100
+        memory_per_unit_mb: 1
+        cpu_per_unit: 0.01
+        min: 10
+        max: 200
+    estimated_time_min: 15
+    category: "vuln_scan"
+
+  nikto:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "medium"
+    base_memory_mb: 200
+    base_cpu_cores: 0.5
+    scalable_params:
+      tuning:
+        value: "x6"
+        memory_impact_mb: 50
+        cpu_impact: 0.2
+    estimated_time_min: 30
+    category: "vuln_scan"
+
+  dalfox:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "heavy"
+    base_memory_mb: 500
+    base_cpu_cores: 1.5
+    scalable_params:
+      worker:
+        value: 100
+        memory_per_unit_mb: 3
+        cpu_per_unit: 0.02
+        min: 10
+        max: 200
+      timeout:
+        value: 10
+        memory_per_unit_mb: 0
+        cpu_per_unit: 0
+        min: 5
+        max: 30
+    estimated_time_min: 45
+    category: "vuln_scan"
+
+  sqlmap:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "very_heavy"
+    base_memory_mb: 600
+    base_cpu_cores: 1.5
+    scalable_params:
+      threads:
+        value: 4
+        memory_per_unit_mb: 300
+        cpu_per_unit: 0.6
+        min: 1
+        max: 10
+      level:
+        value: 3
+        memory_impact_mb: 200
+        cpu_impact: 0.3
+        min: 1
+        max: 5
+      risk:
+        value: 3
+        memory_impact_mb: 100
+        cpu_impact: 0.2
+        min: 1
+        max: 3
+    estimated_time_min: 90
+    category: "vuln_scan"
+
+  wpscan_vuln:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "heavy"
+    base_memory_mb: 500
+    base_cpu_cores: 1.0
+    scalable_params:
+      enumerate:
+        value: "vp,vt,u,m"
+        memory_impact_mb: 150
+        cpu_impact: 0.4
+    estimated_time_min: 40
+    category: "vuln_scan"
+
+  cors_scanner:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "light"
+    base_memory_mb: 150
+    base_cpu_cores: 0.3
+    scalable_params: {}
+    estimated_time_min: 10
+    category: "vuln_scan"
+
+  ssrf_check:
+    phase: "phase_7_vuln_scan"
+    phase_weight: "medium"
+    base_memory_mb: 300
+    base_cpu_cores: 0.8
+    scalable_params:
+      concurrency:
+        value: 25
+        memory_per_unit_mb: 5
+        cpu_per_unit: 0.05
+        min: 5
+        max: 100
+    estimated_time_min: 20
+    category: "vuln_scan"
+
+# Phase weight classification for scheduling decisions
+phase_weights:
+  phase_1_passive_recon:
+    weight: "light"
+    max_concurrent_light_hw: 6       # On high-end (16GB+)
+    max_concurrent_medium_hw: 4      # On medium (8GB)
+    max_concurrent_low_hw: 3         # On low-end (4GB)
+    scheduler_strategy: "high_concurrency"  # Start all that fit
+
+  phase_2_secrets_osint:
+    weight: "light"
+    max_concurrent_light_hw: 4
+    max_concurrent_medium_hw: 3
+    max_concurrent_low_hw: 2
+    scheduler_strategy: "high_concurrency"
+
+  phase_3_asset_discovery:
+    weight: "medium"
+    max_concurrent_light_hw: 4
+    max_concurrent_medium_hw: 2
+    max_concurrent_low_hw: 1
+    scheduler_strategy: "adaptive_with_throttle"
+
+  phase_4_surface_intelligence:
+    weight: "medium"
+    max_concurrent_light_hw: 3
+    max_concurrent_medium_hw: 2
+    max_concurrent_low_hw: 1
+    scheduler_strategy: "adaptive_with_throttle"
+
+  phase_5_enumeration:
+    weight: "heavy"
+    max_concurrent_light_hw: 2
+    max_concurrent_medium_hw: 1
+    max_concurrent_low_hw: 1
+    scheduler_strategy: "adaptive_sequential"
+
+  phase_6_content_discovery:
+    weight: "very_heavy"
+    max_concurrent_light_hw: 1
+    max_concurrent_medium_hw: 1
+    max_concurrent_low_hw: 1
+    scheduler_strategy: "adaptive_sequential"
+
+  phase_7_vuln_scan:
+    weight: "very_heavy"
+    max_concurrent_light_hw: 1
+    max_concurrent_medium_hw: 1
+    max_concurrent_low_hw: 1
+    scheduler_strategy: "adaptive_sequential_with_params_scaling"
+
+# Resource thresholds for adaptive behavior
+resource_thresholds:
+  ram_critical_percent: 85      # Above this, throttle aggressively
+  ram_high_percent: 75          # Above this, pause new tools
+  ram_normal_percent: 60        # Normal operating zone
+  cpu_critical_percent: 90
+  cpu_high_percent: 80
+  swap_usage_warning_percent: 50  # If swap > 50%, treat as memory pressure
+  user_activity_idle_seconds: 300  # Consider user idle after 5 min
+  safety_margin_percent: 20     # Always reserve 20% RAM for OS
