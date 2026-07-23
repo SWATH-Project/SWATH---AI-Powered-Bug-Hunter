@@ -1,0 +1,114 @@
+{
+    "subfinder": {
+        "weight": "light",
+        "category": "passive",
+        "detection_risk": "none",
+        "network_behavior": "Queries 3rd party APIs. No direct packets to target.",
+        "defender_visibility": "0% - Completely invisible to target SOC.",
+        "evasion_notes": "Safe to use anytime."
+    },
+    "amass": {
+        "weight": "heavy",
+        "category": "passive",
+        "detection_risk": "low",
+        "network_behavior": "Queries APIs. May scrape target infrastructure if active mode is used.",
+        "defender_visibility": "10% - DNS resolution logs on target nameservers.",
+        "evasion_notes": "Use passive mode strictly for zero detection."
+    },
+    "httpx": {
+        "weight": "medium",
+        "category": "discovery",
+        "detection_risk": "low",
+        "network_behavior": "Performs fast HTTP GET requests to resolve live web servers.",
+        "defender_visibility": "20% - WAF/CDN logs will show mass HTTP GET requests to root path.",
+        "evasion_notes": "Slow threads or use random user-agents to blend in."
+    },
+    "naabu": {
+        "weight": "heavy",
+        "category": "discovery",
+        "detection_risk": "high",
+        "network_behavior": "SYN port scanning across all specified ports.",
+        "defender_visibility": "80% - Core firewalls boundary routers will alert on SYN sweeps.",
+        "evasion_notes": "Use source IP spoofing or scan via proxychains."
+    },
+    "dnsx": {
+        "weight": "medium",
+        "category": "discovery",
+        "detection_risk": "low",
+        "network_behavior": "Mass DNS resolution using specific resolvers.",
+        "defender_visibility": "5% - Only visible if querying target's authoritative nameservers directly.",
+        "evasion_notes": "Use public resolvers (8.8.8.8, 1.1.1.1)."
+    },
+    "ffuf": {
+        "weight": "heavy",
+        "category": "content_discovery",
+        "detection_risk": "high",
+        "network_behavior": "High-speed HTTP requests enumerating paths/parameters.",
+        "defender_visibility": "95% - Triggers standard WAF rules for directory brute forcing (404 spikes).",
+        "evasion_notes": "Use delay between requests, jitter, and rotate IP/User-Agents."
+    },
+    "dirsearch": {
+        "weight": "heavy",
+        "category": "content_discovery",
+        "detection_risk": "high",
+        "network_behavior": "Standard HTTP path brute-forcer.",
+        "defender_visibility": "95% - Easily blocked by Cloudflare/AWS WAF.",
+        "evasion_notes": "Requires significant rate-limiting to evade detection."
+    },
+    "nuclei": {
+        "weight": "heavy",
+        "category": "vuln_scan",
+        "detection_risk": "high",
+        "network_behavior": "Sends heavily malformed requests mimicking known exploits.",
+        "defender_visibility": "99% - SIEM alerts on standard Nuclei standard payloads/headers.",
+        "evasion_notes": "Remove 'Nuclei' User-Agent. Disable intrusive templates."
+    },
+    "gitleaks": {
+        "weight": "light",
+        "category": "secrets",
+        "detection_risk": "none",
+        "network_behavior": "Locally scans cloned repositories or fetched files.",
+        "defender_visibility": "0% - Operates entirely locally off downloaded data.",
+        "evasion_notes": "N/A"
+    },
+    "trufflehog": {
+        "weight": "light",
+        "category": "secrets",
+        "detection_risk": "none",
+        "network_behavior": "Locally scans for entropy/secrets.",
+        "defender_visibility": "0% - Operates locally.",
+        "evasion_notes": "N/A"
+    },
+    "katana": {
+        "weight": "medium",
+        "category": "enumeration",
+        "detection_risk": "medium",
+        "network_behavior": "Crawls web pages, following links and extracting endpoints.",
+        "defender_visibility": "40% - Looks like an aggressive bot/scraper.",
+        "evasion_notes": "Set custom User-Agent to mimic Googlebot to reduce casual blocking."
+    },
+    "gau": {
+        "weight": "medium",
+        "category": "enumeration",
+        "detection_risk": "low",
+        "network_behavior": "Fetches known URLs from AlienVault OTX, Wayback Machine, etc.",
+        "defender_visibility": "0% - Queries external sources, not the target.",
+        "evasion_notes": "Safe to use anytime."
+    },
+    "dalfox": {
+        "weight": "heavy",
+        "category": "vuln_scan",
+        "detection_risk": "high",
+        "network_behavior": "Injects XSS payloads into parameters and headers.",
+        "defender_visibility": "100% - Highly noisy, triggers basic XSS WAF rules.",
+        "evasion_notes": "Avoid running without explicit permission."
+    },
+    "subjack": {
+        "weight": "medium",
+        "category": "vuln_scan",
+        "detection_risk": "low",
+        "network_behavior": "Queries CNAME records and checks if destination service is vulnerable to takeover.",
+        "defender_visibility": "5% - Simple DNS resolution and selective HTTP GET to cloud providers.",
+        "evasion_notes": "Low noise profile."
+    }
+}
