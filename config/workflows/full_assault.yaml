@@ -1,0 +1,64 @@
+# SWATH Workflow: Full Assault
+# Complete comprehensive scan — authorized pentests only
+#
+# WARNING: This workflow runs ALL phases with ALL tools enabled.
+# It will generate significant traffic. Only use on targets you own
+# or have explicit written authorization to test.
+#
+# Strategy:
+# - All 7 phases, all tools enabled
+# - No budget limit
+# - Extended timeouts for thorough coverage
+# - Every conditional tool forced to run
+# - Full vulnerability scanning including SQLMap
+# - Ideal for: authorized pentests, owned infrastructure, full-scope assessments
+
+meta:
+  name: "Full Assault"
+  description: "Complete comprehensive scan — ALL phases, ALL tools. Authorized pentests only."
+  author: "SWATH Workflows"
+  version: "1.0"
+  estimated_time: "2-4 hours"
+  use_case: "Authorized penetration tests, owned infrastructure, full-scope bug bounty programs"
+  warning: "Generates significant traffic. Only use with explicit authorization."
+
+workflow:
+  phases: [1, 2, 3, 4, 5, 6, 7]
+  profile: blitz
+
+  phase_overrides:
+    phase_5_enumeration:
+      tools:
+        - katana
+        - gau
+        - paramspider
+        - arjun
+        - graphql_voyager
+
+    phase_6_content_discovery:
+      tools:
+        - ffuf
+        - tool: wpscan
+          always: true
+
+    phase_7_vuln_scan:
+      tools:
+        - nuclei
+        - nuclei_auth
+        - subjack
+        - dalfox
+        - sqlmap
+      force_all: true  # Run all tools regardless of conditional tags
+
+budget:
+  enabled: false
+  max_requests_total: null
+  action_on_exceeded: "warn"
+
+timeout:
+  max_total_minutes: 240
+
+global_defaults:
+  timeout: 600
+  retries: 2
+  rate_limit: null

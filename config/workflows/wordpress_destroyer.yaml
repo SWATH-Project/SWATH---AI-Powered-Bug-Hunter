@@ -1,0 +1,52 @@
+# SWATH Workflow: WordPress Destroyer
+# WordPress-specific deep scan
+#
+# Strategy:
+# - Passive recon for subdomain enumeration
+# - Live host discovery
+# - Surface intelligence to confirm WordPress presence
+# - Aggressive content discovery with ffuf + wpscan
+# - Nuclei with WordPress-specific templates
+# - Ideal for: targets running WordPress, WooCommerce, or WP-based apps
+
+meta:
+  name: "WordPress Destroyer"
+  description: "WordPress-specific deep scan. Plugin enum, theme detection, WP CVE hunting."
+  author: "SWATH Workflows"
+  version: "1.0"
+  estimated_time: "45 minutes"
+  use_case: "WordPress targets, WooCommerce sites, WP plugin vulnerability hunting"
+
+workflow:
+  phases: [1, 3, 4, 6, 7]
+  profile: ninja
+
+  phase_overrides:
+    phase_6_content_discovery:
+      tools:
+        - ffuf
+        - tool: wpscan
+          always: true  # Force wpscan even without has_wordpress tag
+          config:
+            enumerate: "vp,vt,u,m"  # vulnerable plugins, themes, users, media
+            api_token: null
+
+    phase_7_vuln_scan:
+      tools:
+        - tool: nuclei
+          config:
+            templates: "wordpress,cves,exposures"
+            severity: "critical,high,medium"
+
+budget:
+  enabled: true
+  max_requests_total: 8000
+  action_on_exceeded: "warn"
+
+timeout:
+  max_total_minutes: 45
+
+global_defaults:
+  timeout: 300
+  retries: 1
+  rate_limit: 60
