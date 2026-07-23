@@ -1,0 +1,31 @@
+name: api_hunter
+description: API-focused reconnaissance and testing
+timeout_minutes: 180
+max_requests: null
+
+phases:
+  - id: 1
+    name: passive_recon
+    tools:
+      - subfinder
+  - id: 3
+    name: live_hosts
+    tools:
+      - httpx
+  - id: 4
+    name: surface_intel
+    tools:
+      - wappalyzer
+  - id: 5
+    name: enumeration
+    tools:
+      - katana
+      - arjun
+      - graphql_voyager
+      - kiterunner
+      - jwt_tool
+  - id: 7
+    name: vuln_scan
+    tools:
+      - nuclei
+      - dalfox

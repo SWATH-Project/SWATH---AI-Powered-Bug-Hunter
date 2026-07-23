@@ -1,0 +1,21 @@
+name: quick_wins
+description: Fast low-hanging fruit hunt
+timeout_minutes: 30
+max_requests: 3000
+
+phases:
+  - id: 1
+    name: passive_recon
+    tools:
+      - subfinder
+      - crtsh
+  - id: 3
+    name: live_hosts
+    tools:
+      - httpx
+  - id: 7
+    name: vuln_scan
+    tools:
+      - subjack
+      - nuclei:
+          templates: "takeovers/,cves/,exposed-panels/"
