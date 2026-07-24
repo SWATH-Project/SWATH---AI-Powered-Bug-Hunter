@@ -1,0 +1,75 @@
+# Python virtual environments
+lib/
+lib64/
+swath/lib/
+swath/lib64/
+huntforge/
+venv/
+ENV/
+env/
+.venv
+
+# Git repository
+.git/
+.gitignore
+
+# IDE configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# SWATH specific exclusions (already in .gitignore but explicit for Docker)
+output/
+logs/
+wordlists/
+SecLists/
+.nuclei/
+.ollama/
+.swath/
+.config/swath/
+.credstore/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker related
+docker-data/
+*.tar
+
+# Checkpoint files
+**/checkpoint.json
+
+# Test targets
+test-targets/
+example.com/
+robinhood.com/
+**/output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
