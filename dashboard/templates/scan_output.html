@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ filename }} — {{ scan.domain }} — SWATH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="bg-abstract bg-blob-1"></div>
+    <div class="bg-abstract bg-blob-2"></div>
+
+    <div class="container relative z-10">
+        <a href="/scan/{{ scan.id }}" class="back-link">← Back to {{ scan.domain }}</a>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h1 style="font-size:1.2rem;font-weight:600">{{ filename }}</h1>
+            <button onclick="copyContent()" class="btn btn-outline btn-sm">📋 Copy</button>
+        </div>
+
+        <div class="card glass box-glow">
+            <div class="log-terminal" style="max-height:none">
+                <div class="log-header">
+                    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+                    <span class="text-xs text-muted" style="margin-left:auto">{{ scan.domain }} / {{ filename }}</span>
+                </div>
+                <div class="log-body" style="max-height:70vh;overflow-y:auto">
+                    <pre style="margin:0;white-space:pre-wrap;word-break:break-all;font-size:.8rem;line-height:1.7;color:var(--text-secondary)" id="fileContent">{{ content }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Copied to clipboard</div>
+
+    <script>
+    function copyContent() {
+        const text = document.getElementById('fileContent').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const t = document.getElementById('toast');
+            t.className = 'toast show';
+            setTimeout(() => t.className = 'toast', 3000);
+        });
+    }
+
+    {% if scan.status == 'RUNNING' %}
+    // Auto-refresh for running scans
+    setTimeout(() => location.reload(), 10000);
+    {% endif %}
+    </script>
+</body>
+</html>
