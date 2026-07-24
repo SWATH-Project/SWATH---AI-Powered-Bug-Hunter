@@ -1,0 +1,16 @@
+# SWATH Core Dependencies
+pyyaml==6.0.1
+rich==13.7.1
+loguru==0.7.2
+requests==2.31.0
+python-dotenv==1.0.1
+psutil==5.9.8
+
+# SWATH Dashboard
+Flask==3.0.3
+
+# Report Rendering
+markdown==3.7
+pygments==2.18.0
+
+# AI — OpenRouter API (uses requests)
