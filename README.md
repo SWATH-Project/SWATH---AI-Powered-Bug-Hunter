@@ -294,6 +294,15 @@ docker-compose up -d --build
 # Verify container is running
 docker ps | grep swath-kali
 
+# Gain a terminal like kali with root access
+docker exec -u root -it swath-kali /bin/bash
+
+# create virtual environment
+python3 -m venv swath
+
+# install all the requirements
+pip3 install -r requirements.txt
+
 # Run your first scan
 python3 swath.py scan example.com
 ```
@@ -793,10 +802,10 @@ class MyToolModule(BaseModule):
 
 SWATH v1.0 was built by a dedicated team of security students:
 
-- **[Nimesh Nakum]** — Project Lead & Red-Teamer
-- **[Neel Suhagiya]** — Red-Teamer
-- **[Prince Dholakiya]** — Blue-Teamer
-- **[Abhishek Gohel]** — Blue-Teamer
+- **Nimesh Nakum** — Project Lead & Red-Teamer
+- **Neel Suhagiya** — Red-Teamer
+- **Prince Dholakiya** — Blue-Teamer
+- **Abhishek Gohel** — Blue-Teamer
 
 ---
 
