@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Report — {{ scan.domain }} — SWATH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="bg-abstract bg-blob-1"></div>
+    <div class="bg-abstract bg-blob-2"></div>
+
+    <div class="container relative z-10 report-container">
+        <a href="/scan/{{ scan.id }}" class="back-link">← Back to Scan Detail</a>
+
+        {% if not report_html %}
+        <div class="card glass">
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <p>No AI report has been generated for this scan yet.</p>
+                <button onclick="triggerReport()" class="btn btn-primary" style="margin-top:1rem" id="genBtn">🤖 Generate Report Now</button>
+            </div>
+        </div>
+        {% else %}
+
+        <div class="report-header">
+            <div>
+                <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:.25rem">Security Assessment Report</h1>
+                <p class="text-sm text-secondary">
+                    {{ scan.domain }} ·
+                    {% if report_meta %}
+                        Generated {{ report_meta.get('generated_at', '')[:10] }} · {{ report_meta.get('model', 'AI Engine') }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="report-actions">
+                <button onclick="window.print()" class="btn btn-outline btn-sm">🖨️ Print</button>
+                <button onclick="downloadMd()" class="btn btn-outline btn-sm">📥 Download .md</button>
+                <a href="/scan/{{ scan.id }}" class="btn btn-outline btn-sm">← Scan</a>
+            </div>
+        </div>
+
+        <div class="card glass box-glow">
+            <div class="report-content" id="reportContent">
+                {{ report_html | safe }}
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <div id="toast" class="toast">Action completed</div>
+
+    <script>
+    {% if report_md %}
+    const REPORT_MD = {{ report_md | tojson }};
+    {% else %}
+    const REPORT_MD = '';
+    {% endif %}
+
+    function downloadMd() {
+        const blob = new Blob([REPORT_MD], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '{{ scan.domain }}_security_report.md';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    async function triggerReport() {
+        const btn = document.getElementById('genBtn');
+        if (!btn) return;
+        btn.disabled = true; btn.textContent = '⏳ Generating (30-60s)...';
+        try {
+            await fetch('/api/scan/{{ scan.id }}/generate-report', { method: 'POST' });
+            showToast('Report generation started. Refreshing...');
+            setTimeout(() => location.reload(), 35000);
+        } catch(e) {
+            showToast('Failed to start generation');
+            btn.disabled = false; btn.textContent = '🤖 Generate Report Now';
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = 'toast show';
+        setTimeout(() => t.className = 'toast', 3000);
+    }
+    </script>
+</body>
+</html>
