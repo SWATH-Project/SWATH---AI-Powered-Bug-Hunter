@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ scan.domain if scan else 'Not Found' }} — SWATH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="bg-abstract bg-blob-1"></div>
+    <div class="bg-abstract bg-blob-2"></div>
+
+    <div class="container relative z-10">
+        <a href="/" class="back-link">← Back to Command Center</a>
+
+        {% if not scan %}
+        <div class="card glass"><div class="empty-state"><div class="empty-icon">🔍</div><p>Scan not found.</p></div></div>
+        {% else %}
+
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem">
+            <div>
+                <h1 style="font-size:1.5rem;font-weight:700;margin-bottom:.25rem">{{ scan.domain }}</h1>
+                <div style="display:flex;align-items:center;gap:.75rem">
+                    <span class="status status-{{ scan.status|lower }}"><span class="status-dot"></span>{{ scan.status }}</span>
+                    <span class="text-xs text-muted">Scan #{{ scan.id }}</span>
+                    <span id="connBadge" class="conn-status"><span class="conn-dot"></span><span id="connText">Connecting</span></span>
+                </div>
+            </div>
+            <div style="display:flex;gap:.5rem">
+                {% if has_report %}
+                <a href="/scan/{{ scan.id }}/report" class="btn btn-primary btn-sm">📄 View Report</a>
+                {% else %}
+                <button onclick="triggerReport()" class="btn btn-outline btn-sm" id="reportBtn">🤖 Generate Report</button>
+                {% endif %}
+                <button onclick="openPrecisionModal()" class="btn btn-danger btn-sm">🎯 Precision Strike</button>
+            </div>
+        </div>
+
+        <!-- Phase Timeline -->
+        <div class="card glass box-glow" style="margin-bottom:1.5rem">
+            <h2>Scan Pipeline</h2>
+            <div class="phase-timeline" id="phaseTimeline">
+                <div class="phase-step" data-phase="phase_1_passive_recon"><div class="phase-dot"></div><div class="phase-label">Passive Recon</div></div>
+                <div class="phase-step" data-phase="phase_2_secrets_osint"><div class="phase-dot"></div><div class="phase-label">Secrets</div></div>
+                <div class="phase-step" data-phase="phase_3_live_discovery"><div class="phase-dot"></div><div class="phase-label">Discovery</div></div>
+                <div class="phase-step" data-phase="phase_4_surface_intel"><div class="phase-dot"></div><div class="phase-label">Surface Intel</div></div>
+                <div class="phase-step" data-phase="phase_5_enumeration"><div class="phase-dot"></div><div class="phase-label">Enumeration</div></div>
+                <div class="phase-step" data-phase="phase_6_content_discovery"><div class="phase-dot"></div><div class="phase-label">Content</div></div>
+                <div class="phase-step" data-phase="phase_7_vuln_scan"><div class="phase-dot"></div><div class="phase-label">Vuln Scan</div></div>
+            </div>
+            <div style="margin-top:.75rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+                    <span class="text-xs text-muted" id="progressLabel">Initializing...</span>
+                    <span class="text-xs text-accent" id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Budget & Resources -->
+            <div class="card glass">
+                <h2>Budget & Resources</h2>
+                <div class="budget-grid" id="budgetGrid">
+                    <div class="budget-item"><div class="budget-label">Requests</div><div class="budget-value" id="budgetRequests">{{ budget.get('requests_used', 0) }} / {{ budget.get('max_requests', '∞') }}</div></div>
+                    <div class="budget-item"><div class="budget-label">Elapsed</div><div class="budget-value" id="budgetElapsed">{{ budget.get('elapsed_minutes', 0) }}m</div></div>
+                    <div class="budget-item"><div class="budget-label">Tools Done</div><div class="budget-value" id="budgetTools">{{ completed_tools|length }}</div></div>
+                    <div class="budget-item"><div class="budget-label">Tags Found</div><div class="budget-value" id="budgetTags">{{ tags|length }}</div></div>
+                </div>
+            </div>
+
+            <!-- Tool Execution Grid -->
+            <div class="card glass">
+                <h2>Tool Execution</h2>
+                <div class="tool-grid" id="toolGrid">
+                    {% for tool in completed_tools %}
+                    <div class="tool-card">
+                        <div class="tool-status-icon {{ tool.status }}"></div>
+                        <span class="tool-name">{{ tool.tool }}</span>
+                        <span class="tool-time">{{ "%.1f"|format(tool.elapsed_seconds) }}s</span>
+                    </div>
+                    {% else %}
+                    <div class="text-sm text-muted" style="padding:.5rem">Waiting for tools to start...</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Log Stream -->
+        <div class="card glass" style="margin-top:1.5rem">
+            <h2>Live Event Stream</h2>
+            <div class="log-terminal">
+                <div class="log-header"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="text-xs text-muted" style="margin-left:auto" id="logCount">0 events</span></div>
+                <div class="log-body" id="logBody">
+                    <div class="log-line"><span class="ts">[--:--:--]</span> <span class="ev">Waiting for events...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-top:1.5rem">
+            <!-- Intelligence Tags -->
+            <div class="card glass">
+                <h2>Intelligence Tags</h2>
+                <div class="tag-grid" id="tagGrid">
+                    {% for tag, data in tags.items() %}
+                    <div class="tag-item {{ data.confidence }}">
+                        <span>{{ tag }}</span>
+                        <span class="tag-badge tag-badge-{{ data.confidence }}">{{ data.confidence }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-sm text-muted">No tags discovered yet.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Output Files -->
+            <div class="card glass">
+                <h2>Output Files</h2>
+                <div class="file-grid" id="fileGrid">
+                    {% for cat, files in output_files.items() %}
+                    <div class="file-section">
+                        <h3>{{ cat }}</h3>
+                        <ul class="file-list">
+                            {% for f in files %}
+                            <li><a href="/scan/{{ scan.id }}/output/{{ f }}" target="_blank">{{ f.split('/')[-1] }}</a></li>
+                            {% else %}
+                            <li class="text-xs text-muted">No files</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+
+    <!-- Precision Strike Modal -->
+    <div id="precisionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header"><h2>🎯 Target Selection</h2><button class="close-btn" onclick="closePrecisionModal()">×</button></div>
+            <div class="modal-body">
+                <input type="text" id="urlSearch" class="glass-input" placeholder="Filter endpoints..." onkeyup="filterUrls()">
+                <div class="url-list-container" id="urlList"><div style="padding:20px;text-align:center;color:var(--text-muted)">Loading endpoints...</div></div>
+            </div>
+            <div class="modal-footer">
+                <span class="text-xs text-accent"><span id="selectedCount">0</span> selected</span>
+                <button id="launchBtn" onclick="launchPrecisionStrike()" class="btn btn-danger btn-sm" disabled>Launch Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Action completed</div>
+
+    <script>
+    const SCAN_ID = {{ scan.id if scan else 0 }};
+    const SCAN_STATUS = '{{ scan.status if scan else "" }}';
+    const PHASES = ['phase_1_passive_recon','phase_2_secrets_osint','phase_3_live_discovery','phase_4_surface_intel','phase_5_enumeration','phase_6_content_discovery','phase_7_vuln_scan'];
+    let allEvents = [];
+    let sse = null;
+    let pollTimer = null;
+
+    // ── Load initial server-rendered state ──
+    const INITIAL_LIVE_STATE = {{ live_state | tojson }};
+    const INITIAL_EVENTS = {{ events | tojson if events else '[]' }};
+
+    function applyInitialState() {
+        // Apply server-rendered live_state immediately
+        if (INITIAL_LIVE_STATE && INITIAL_LIVE_STATE.phase) {
+            updatePhaseTimeline(INITIAL_LIVE_STATE.phase, INITIAL_LIVE_STATE.status);
+            const tc = INITIAL_LIVE_STATE.tools_completed || 0;
+            const tt = INITIAL_LIVE_STATE.tools_total || 1;
+            const pct = Math.round((tc / tt) * 100);
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressPct').textContent = pct + '%';
+            document.getElementById('progressLabel').textContent = INITIAL_LIVE_STATE.tool ? `Running: ${INITIAL_LIVE_STATE.tool}` : `Phase: ${INITIAL_LIVE_STATE.phase}`;
+        }
+
+        if (SCAN_STATUS === 'COMPLETED') {
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressPct').textContent = '100%';
+            document.getElementById('progressLabel').textContent = 'Scan Complete';
+            PHASES.forEach(p => { const el = document.querySelector(`[data-phase="${p}"]`); if(el) el.classList.add('completed'); });
+        }
+
+        // Load initial events into the log terminal
+        if (INITIAL_EVENTS && INITIAL_EVENTS.length) {
+            const body = document.getElementById('logBody');
+            body.innerHTML = '';
+            INITIAL_EVENTS.forEach(ev => {
+                allEvents.push(ev);
+                appendLogLine(ev);
+            });
+            document.getElementById('logCount').textContent = allEvents.length + ' events';
+        }
+    }
+
+    // ── Real-Time Updates ──
+    function startLiveUpdates() {
+        if (!SCAN_ID) return;
+        const conn = document.getElementById('connBadge');
+        const connText = document.getElementById('connText');
+
+        if (SCAN_STATUS === 'RUNNING') {
+            // Use polling for real-time (SSE can block Flask dev server)
+            startPolling();
+        } else {
+            // For completed scans, just load once
+            conn.classList.add('connected'); connText.textContent = 'Loaded';
+            fetchStatus();
+        }
+    }
+
+    function startPolling() {
+        const conn = document.getElementById('connBadge');
+        const connText = document.getElementById('connText');
+        conn.classList.add('connected'); connText.textContent = 'Polling';
+
+        pollTimer = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/scan/${SCAN_ID}/status`);
+                const data = await res.json();
+                handleUpdate({
+                    scan_status: data.scan.status,
+                    live_state: data.live_state,
+                    new_events: data.events.slice(allEvents.length),
+                    has_report: data.has_report
+                });
+                // Update tools
+                updateToolGrid(data.checkpoint.completed_tools || []);
+                updateTags(data.tags || {});
+                updateBudget(data.budget || {});
+                updateFiles(data.output_files || {});
+
+                if (data.scan.status !== 'RUNNING') { clearInterval(pollTimer); connText.textContent = 'Complete'; location.reload(); }
+            } catch(e) { conn.classList.remove('connected'); connText.textContent = 'Error'; }
+        }, 2000);
+    }
+
+    async function fetchStatus() {
+        try {
+            const res = await fetch(`/api/scan/${SCAN_ID}/status`);
+            const data = await res.json();
+            handleUpdate({ scan_status: data.scan.status, live_state: data.live_state, new_events: data.events, has_report: data.has_report });
+            updateToolGrid(data.checkpoint.completed_tools || []);
+            updateTags(data.tags || {});
+            updateBudget(data.budget || {});
+            updateFiles(data.output_files || {});
+        } catch(e) {}
+    }
+
+    function handleUpdate(data) {
+        // Phase timeline
+        if (data.live_state && data.live_state.phase) {
+            updatePhaseTimeline(data.live_state.phase, data.live_state.status);
+            // Progress
+            const tc = data.live_state.tools_completed || 0;
+            const tt = data.live_state.tools_total || 1;
+            const pct = Math.round((tc / tt) * 100);
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressPct').textContent = pct + '%';
+            document.getElementById('progressLabel').textContent = data.live_state.tool ? `Running: ${data.live_state.tool}` : `Phase: ${data.live_state.phase}`;
+        }
+
+        if (data.scan_status === 'COMPLETED') {
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('progressPct').textContent = '100%';
+            document.getElementById('progressLabel').textContent = 'Scan Complete';
+            PHASES.forEach(p => { const el = document.querySelector(`[data-phase="${p}"]`); if(el) el.classList.add('completed'); });
+        }
+
+        // Events
+        if (data.new_events && data.new_events.length) {
+            data.new_events.forEach(ev => {
+                if (!allEvents.find(e => e.timestamp === ev.timestamp && e.event_type === ev.event_type)) {
+                    allEvents.push(ev);
+                    appendLogLine(ev);
+                }
+            });
+            document.getElementById('logCount').textContent = allEvents.length + ' events';
+        }
+
+        // Report button
+        if (data.has_report) {
+            const rb = document.getElementById('reportBtn');
+            if (rb) { rb.outerHTML = `<a href="/scan/${SCAN_ID}/report" class="btn btn-primary btn-sm">📄 View Report</a>`; }
+        }
+    }
+
+    function updatePhaseTimeline(currentPhase, status) {
+        const idx = PHASES.indexOf(currentPhase);
+        PHASES.forEach((p, i) => {
+            const el = document.querySelector(`[data-phase="${p}"]`);
+            if (!el) return;
+            el.classList.remove('active', 'completed');
+            if (i < idx) el.classList.add('completed');
+            else if (i === idx) el.classList.add(status === 'completed' ? 'completed' : 'active');
+        });
+    }
+
+    function updateToolGrid(tools) {
+        const grid = document.getElementById('toolGrid');
+        if (!tools.length) return;
+        grid.innerHTML = tools.map(t => `
+            <div class="tool-card">
+                <div class="tool-status-icon ${t.status}"></div>
+                <span class="tool-name">${t.tool}</span>
+                <span class="tool-time">${t.elapsed_seconds ? t.elapsed_seconds.toFixed(1) + 's' : ''}</span>
+            </div>
+        `).join('');
+    }
+
+    function updateTags(tags) {
+        const grid = document.getElementById('tagGrid');
+        const entries = Object.entries(tags);
+        if (!entries.length) return;
+        grid.innerHTML = entries.map(([tag, data]) => `
+            <div class="tag-item ${data.confidence}"><span>${tag}</span><span class="tag-badge tag-badge-${data.confidence}">${data.confidence}</span></div>
+        `).join('');
+    }
+
+    function updateBudget(budget) {
+        if (budget.requests_used !== undefined) document.getElementById('budgetRequests').textContent = `${budget.requests_used} / ${budget.max_requests || '∞'}`;
+        if (budget.elapsed_minutes !== undefined) document.getElementById('budgetElapsed').textContent = `${budget.elapsed_minutes}m`;
+    }
+
+    function updateFiles(files) {
+        const grid = document.getElementById('fileGrid');
+        let html = '';
+        ['raw','processed','logs'].forEach(cat => {
+            const list = files[cat] || [];
+            html += `<div class="file-section"><h3>${cat}</h3><ul class="file-list">`;
+            if (list.length) {
+                list.forEach(f => { html += `<li><a href="/scan/${SCAN_ID}/output/${f.path}" target="_blank">${f.name}</a><span class="file-size">${(f.size/1024).toFixed(1)}K</span></li>`; });
+            } else { html += `<li class="text-xs text-muted">No files</li>`; }
+            html += `</ul></div>`;
+        });
+        grid.innerHTML = html;
+    }
+
+    function appendLogLine(ev) {
+        const body = document.getElementById('logBody');
+        const ts = ev.timestamp ? ev.timestamp.substring(11, 19) : '--:--:--';
+        const type = ev.event_type || 'unknown';
+        let cls = '';
+        if (type.includes('error') || ev.status === 'failed') cls = 'error';
+        else if (type.includes('complete') || ev.status === 'success') cls = 'success';
+        else if (type.includes('skipped') || type.includes('warning')) cls = 'warn';
+
+        const tool = ev.tool ? ` [${ev.tool}]` : '';
+        const detail = ev.reason || ev.error || (ev.findings ? `${ev.findings} findings` : '') || '';
+        const elapsed = ev.elapsed_seconds ? ` (${ev.elapsed_seconds.toFixed(1)}s)` : '';
+
+        const div = document.createElement('div');
+        div.className = `log-line ${cls}`;
+        div.innerHTML = `<span class="ts">[${ts}]</span> <span class="ev">${type}${tool}${elapsed}</span>${detail ? ' — ' + detail : ''}`;
+        // Remove placeholder
+        if (body.children.length === 1 && body.children[0].textContent.includes('Waiting')) body.innerHTML = '';
+        body.appendChild(div);
+        body.scrollTop = body.scrollHeight;
+    }
+
+    // ── Report Generation ──
+    async function triggerReport() {
+        const btn = document.getElementById('reportBtn');
+        if (!btn) return;
+        btn.disabled = true; btn.textContent = '⏳ Generating...';
+        try {
+            await fetch(`/api/scan/${SCAN_ID}/generate-report`, { method: 'POST' });
+            showToast('Report generation started. Refresh in ~30 seconds.');
+            setTimeout(() => location.reload(), 30000);
+        } catch(e) { showToast('Failed to start report generation'); btn.disabled = false; btn.textContent = '🤖 Generate Report'; }
+    }
+
+    // ── Precision Strike ──
+    let allDiscoveredUrls = [];
+    async function openPrecisionModal() {
+        document.getElementById('precisionModal').style.display = 'flex';
+        if (!allDiscoveredUrls.length) {
+            try {
+                const res = await fetch(`/api/scan/${SCAN_ID}/urls`);
+                const data = await res.json();
+                if (data.urls && data.urls.length) { allDiscoveredUrls = data.urls; renderUrls(allDiscoveredUrls); }
+                else { document.getElementById('urlList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No URLs found.</div>'; }
+            } catch(e) { document.getElementById('urlList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--critical)">Failed to load.</div>'; }
+        }
+    }
+    function closePrecisionModal() { document.getElementById('precisionModal').style.display = 'none'; }
+    function renderUrls(urls) {
+        const c = document.getElementById('urlList'); c.innerHTML = '';
+        urls.forEach((url, i) => {
+            const div = document.createElement('div'); div.className = 'url-checkbox-item';
+            div.innerHTML = `<input type="checkbox" id="url_${i}" value="${url}" onchange="updateCount()"><label for="url_${i}">${url}</label>`;
+            c.appendChild(div);
+        });
+    }
+    function filterUrls() {
+        const t = document.getElementById('urlSearch').value.toLowerCase();
+        document.querySelectorAll('.url-checkbox-item').forEach(i => { i.style.display = i.querySelector('label').innerText.toLowerCase().includes(t) ? 'flex' : 'none'; });
+    }
+    function updateCount() {
+        const n = document.querySelectorAll('.url-checkbox-item input:checked').length;
+        document.getElementById('selectedCount').textContent = n;
+        document.getElementById('launchBtn').disabled = n === 0;
+    }
+    async function launchPrecisionStrike() {
+        const urls = Array.from(document.querySelectorAll('.url-checkbox-item input:checked')).map(c => c.value);
+        const btn = document.getElementById('launchBtn'); btn.disabled = true; btn.textContent = 'Dispatching...';
+        try {
+            const res = await fetch(`/api/scan/${SCAN_ID}/launch-precision`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls}) });
+            const data = await res.json();
+            closePrecisionModal(); showToast(data.message || 'Strike launched!');
+        } catch(e) { alert('Failed: ' + e); }
+        finally { btn.textContent = 'Launch Scan'; btn.disabled = false; }
+    }
+
+    function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.className = 'toast', 3000); }
+    window.onclick = e => { if (e.target === document.getElementById('precisionModal')) closePrecisionModal(); };
+
+    // Boot
+    applyInitialState();
+    startLiveUpdates();
+    </script>
+</body>
+</html>
