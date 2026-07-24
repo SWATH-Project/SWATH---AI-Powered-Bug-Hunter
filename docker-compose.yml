@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  kali:
+    build:
+      context: .
+      dockerfile: Dockerfile.kali
+    container_name: swath-kali
+    env_file:
+      - .env
+    volumes:
+      - ./:/swath
+      - ~/.swath:/root/.swath
+    working_dir: /swath
+    command: tail -f /dev/null
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 128M
+    networks:
+      - swath
+
+
+
+networks:
+  swath:
+    driver: bridge
