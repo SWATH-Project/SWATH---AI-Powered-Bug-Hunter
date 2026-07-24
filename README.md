@@ -791,12 +791,12 @@ class MyToolModule(BaseModule):
 
 ## Team & Credits
 
-SWATH v1.0 was built by a dedicated team of offensive and defensive security professionals:
+SWATH v1.0 was built by a dedicated team of security students:
 
-- **[Your Name]** — Project Lead & Red-Teamer
-- **[Member 2 Name]** — Red-Teamer
-- **[Member 3 Name]** — Blue-Teamer
-- **[Member 4 Name]** — Blue-Teamer
+- **[Nimesh Nakum]** — Project Lead & Red-Teamer
+- **[Neel Suhagiya]** — Red-Teamer
+- **[Prince Dholakiya]** — Blue-Teamer
+- **[Abhishek Gohel]** — Blue-Teamer
 
 ---
 
