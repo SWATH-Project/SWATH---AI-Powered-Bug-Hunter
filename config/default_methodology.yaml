@@ -610,7 +610,7 @@ budget:
     phase_6_content_discovery:  2000
     phase_7_vuln_scan:          1500
   warn_at_percent: 80
-  action_on_exceeded: "warn"  # Just warn, don't abort
+  action_on_exceeded: "abort"  # Abort scan when budget exceeded
 
 resource_monitor:
   enabled: true

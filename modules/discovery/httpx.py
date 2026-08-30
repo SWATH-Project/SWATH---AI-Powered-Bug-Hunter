@@ -88,13 +88,10 @@ class HttpxModule(BaseModule):
             host_input_file = os.path.join(output_dir, 'raw', 'subfinder.txt')
 
         container_input_file = self._to_container_path(host_input_file)
-
         if not os.path.exists(host_input_file):
             return {'results': [], 'count': 0, 'requests_made': 0}
-
         host_output_file = os.path.join(output_dir, 'raw', 'httpx.json')
         container_output_file = self._to_container_path(host_output_file)
-
         os.makedirs(os.path.dirname(host_output_file), exist_ok=True)
 
         command = self.build_command(target, container_output_file)

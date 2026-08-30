@@ -29,7 +29,7 @@ EXTRA_PATHS = [
 ]
 for p in EXTRA_PATHS:
     if os.path.exists(p) and p not in os.environ["PATH"]:
-        os.environ["PATH"] = f"{p}:{os.environ['PATH']}"
+        os.environ["PATH"] = f"{p}{os.pathsep}{os.environ['PATH']}"
 
 # Color codes for terminal output
 GREEN = '\033[92m'
@@ -143,11 +143,11 @@ def install_via_pip(tool: str, package_name: str = None) -> bool:
     package = package_name or tool
     log_info(f"Installing {tool} via pip...")
 
-    # Check for existing virtual environment (Docker container has one at /home/huntforge/venv)
+    # Check for existing virtual environment (Docker container has one at /home/swath/venv)
     possible_venvs = [
         Path('.') / 'venv',
-        Path.home() / '.huntforge' / 'venv',
-        Path('/home/huntforge/venv'),
+        Path.home() / '.swath' / 'venv',
+        Path('/home/swath/venv'),
     ]
     venv_pip = None
     for venv in possible_venvs:
@@ -189,8 +189,8 @@ def install_via_pip(tool: str, package_name: str = None) -> bool:
         if output and "externally-managed-environment" in output:
             log_warning("Kali's PEP 668 protection blocked the install.")
             log_warning("Solutions:")
-            log_warning("  1. Run installer as root: docker exec -u root huntforge-kali ./scripts/installer.py")
-            log_warning("  2. Create virtualenv: python3 -m venv ~/.huntforge/venv")
+            log_warning("  1. Run installer as root in docker: docker exec -u root swath-kali ./scripts/installer.py")
+            log_warning("  2. Create virtualenv: python3 -m venv ~/.swath/venv")
             log_warning("  3. Install from Kali repos: apt install python3-" + tool)
         return False
 
@@ -228,10 +228,10 @@ def ensure_git_binaries():
         current_path = os.environ.get('PATH', '')
         for path in paths_to_add:
             if path not in current_path:
-                os.environ['PATH'] = f"{path}:{current_path}"
+                os.environ['PATH'] = f"{path}{os.pathsep}{current_path}"
                 log_info(f"Added {path} to PATH for this session")
 
-class HuntForgeInstaller:
+class SWATHInstaller:
     """Main installer logic"""
 
     # Tool installation strategies by OS
@@ -351,14 +351,14 @@ class HuntForgeInstaller:
         self.download_wordlists = download_wordlists
         self.os_family, self.pkg_manager = detect_os()
         self.home = Path.home()
-        self.huntforge_dir = self.home / '.huntforge'
-        self.config_dir = self.huntforge_dir / 'config'
-        self.wordlists_dir = self.huntforge_dir / 'wordlists'
+        self.swath_dir = self.home / '.swath'
+        self.config_dir = self.swath_dir / 'config'
+        self.wordlists_dir = self.swath_dir / 'wordlists'
         self.installed_tools: Dict[str, bool] = {}
 
         log_info(f"Detected OS: {self.os_family}, Package manager: {self.pkg_manager}")
         log_info(f"Profile: {profile}")
-        log_info(f"HuntForge dir: {self.huntforge_dir}")
+        log_info(f"SWATH dir: {self.swath_dir}")
 
     def check_prerequisites(self) -> bool:
         """Check if system meets basic requirements"""
@@ -505,7 +505,7 @@ class HuntForgeInstaller:
             log_warning("Some tools require root privileges for installation (apt/pip).")
             log_warning("")
             log_warning("RECOMMENDED: Run installer as root:")
-            log_warning("  docker exec -u root huntforge-kali ./scripts/installer.py")
+            log_warning("  docker exec -u root swath-kali ./scripts/installer.py")
             log_warning("")
             log_warning("Alternative: Use virtualenv for Python tools only")
             log_warning("=" * 60)
@@ -513,15 +513,15 @@ class HuntForgeInstaller:
 
     def setup_directories(self):
         """Create necessary directory structure"""
-        self.huntforge_dir.mkdir(parents=True, exist_ok=True)
+        self.swath_dir.mkdir(parents=True, exist_ok=True)
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.wordlists_dir.mkdir(parents=True, exist_ok=True)
-        log_success(f"Created directories in {self.home}/.huntforge/")
+        log_success(f"Created directories in {self.home}/.swath/")
 
     def create_config_files(self):
         """Create initial configuration files"""
         # Scope config
-        scope_file = self.huntforge_dir / 'scope.json'
+        scope_file = self.swath_dir / 'scope.json'
         if not scope_file.exists():
             default_scope = {
                 "programs": {
@@ -573,21 +573,21 @@ class HuntForgeInstaller:
             else:
                 log_warning(f"Failed to download {filename}")
 
-    def verify_huntforge_imports(self) -> bool:
-        """Verify HuntForge core modules can be imported"""
+    def verify_swath_imports(self) -> bool:
+        """Verify SWATH core modules can be imported"""
         try:
             # Add project root to path
             sys.path.insert(0, str(Path.cwd()))
             from core.tag_manager import TagManager
             from core.orchestrator_v2 import OrchestratorV2
-            log_success("HuntForge core modules OK")
+            log_success("SWATH core modules OK")
             return True
         except ImportError as e:
-            log_warning(f"HuntForge imports failed in this environment: {e}")
+            log_warning(f"SWATH imports failed in this environment: {e}")
             log_info("This is expected if not using the virtual environment (./venv/bin/python3)")
             return True # Don't fail the whole installation for this
         except Exception as e:
-            log_error(f"HuntForge imports failed: {e}")
+            log_error(f"SWATH imports failed: {e}")
             return False
 
     def print_summary(self):
@@ -599,11 +599,11 @@ class HuntForgeInstaller:
         print(f"Tools installed: {sum(self.installed_tools.values())}")
 
         print("\nNext steps:")
-        print("  1. Edit ~/.huntforge/scope.json to add your targets")
+        print("  1. Edit ~/.swath/scope.json to add your targets")
         print("  2. Optional: Set API keys in .env file")
         print("  3. Run your first scan:")
-        print(f"     python3 huntforge.py scan your-target.com")
-        print("\nFor help: python3 huntforge.py --help")
+        print(f"     python3 swath.py scan your-target.com")
+        print("\nFor help: python3 swath.py --help")
         print("="*60 + "\n")
 
     def run(self) -> bool:
@@ -625,7 +625,7 @@ class HuntForgeInstaller:
         self.install_missing_tools(tools, installed)
         self.create_config_files()
         self.download_minimal_wordlists()
-        self.verify_huntforge_imports()
+        self.verify_swath_imports()
         self.print_summary()
 
         return True

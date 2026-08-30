@@ -79,4 +79,5 @@ class PluginLoader:
     def _to_snake(name: str) -> str:
         import re
         name = re.sub(r'Module$', '', name)
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+        s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()

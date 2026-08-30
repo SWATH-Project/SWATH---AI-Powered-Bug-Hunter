@@ -7,7 +7,7 @@ class ParamspiderModule(BaseModule):
     def build_command(self, target: str, output_file: str) -> list:
         # paramspider is installed via pipx inside the container
         # Since docker exec doesn't source ~/.local/bin, we use the absolute path.
-        cmd = ['/home/huntforge/.local/bin/paramspider', '-d', target, '-s']
+        cmd = ['paramspider', '-d', target, '-s']
         level = self.config.get('level')
         if level:
             cmd += ['--level', str(level)]

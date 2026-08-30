@@ -42,7 +42,7 @@ class SIEMFormatter:
             if k not in ["event_type", "status", "timestamp"]:
                 extensions.append(f"{k}={v}")
                 
-        ext_str = " ".join(extensions)
+        ext_str = " ".join(str(item) for item in extensions)
         return f"CEF:0|{vendor}|{product}|{version}|{sig_id}|{name}|{severity}|{ext_str}"
 
     @staticmethod

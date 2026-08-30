@@ -21,6 +21,9 @@ class TrufflehogModule(BaseModule):
         # BaseModule._run_subprocess will capture this.
         try:
             stdout = self._run_subprocess(self.build_command(target, host_out), output_file=host_out)
+            if stdout:
+                with open(host_out, 'w', encoding='utf-8') as f:
+                    f.write(stdout)
         except Exception as e:
             if 'exited with code 1' not in str(e):
                 logger.warning(f"Trufflehog execution error: {e}")

@@ -96,6 +96,9 @@ if 'nuclei' in TOOL_REGISTRY:
 if 'subfinder' not in TOOL_REGISTRY: TOOL_REGISTRY['subfinder'] = Subfinder
 if 'httpx' not in TOOL_REGISTRY: TOOL_REGISTRY['httpx'] = Httpx
 if 'nuclei' not in TOOL_REGISTRY: TOOL_REGISTRY['nuclei'] = Nuclei
+if 'sqlmap' not in TOOL_REGISTRY: TOOL_REGISTRY['sqlmap'] = SQLMap
+if 'whatweb' not in TOOL_REGISTRY: TOOL_REGISTRY['whatweb'] = WhatWeb
+if 'wappalyzer_cli' not in TOOL_REGISTRY: TOOL_REGISTRY['wappalyzer_cli'] = Wappalyzer
 
 
 class OrchestratorV2:
@@ -158,6 +161,76 @@ class OrchestratorV2:
         """Handle shutdown signals gracefully"""
         logger.warning(f"Received signal {signum}, initiating graceful shutdown...")
         self._shutdown = True
+
+    def preflight_tool_check(self) -> dict:
+        """
+        Verify all required tools for this methodology are installed and accessible.
+        Returns a dict with 'missing' list and 'available' count.
+        """
+        from core.docker_runner import DockerRunner
+        import shutil
+        
+        phases = self.methodology.get('phases', {})
+        missing = []
+        available = []
+        docker_available = False
+        
+        # Check if Docker is available
+        try:
+            docker_runner = DockerRunner()
+            docker_available = docker_runner.is_container_running()
+        except Exception:
+            docker_available = False
+        
+        for phase_name, phase_config in phases.items():
+            if self.only_phase and phase_name != self.only_phase:
+                continue
+            tools = phase_config.get('tools') or phase_config.get('conditional_tools') or []
+            for tool_entry in tools:
+                if isinstance(tool_entry, dict):
+                    tool_name = tool_entry.get('tool') or tool_entry.get('name')
+                else:
+                    tool_name = tool_entry
+                if not tool_name or tool_name not in TOOL_REGISTRY:
+                    continue
+                tool_class = TOOL_REGISTRY[tool_name]
+                try:
+                    tool_instance = tool_class()
+                    # Set config so build_command works if it depends on self.config
+                    tool_instance.config = tool_entry.get('config', {}) if isinstance(tool_entry, dict) else {}
+                    
+                    # Try to get the binary name from build_command
+                    binary = None
+                    try:
+                        cmd = tool_instance.build_command(self.domain, '/dev/null')
+                        if cmd and isinstance(cmd, list) and len(cmd) > 0:
+                            binary = cmd[0]
+                    except (AttributeError, IndexError, Exception):
+                        # API-based tools (crtsh, graphql_voyager) return empty or raise
+                        binary = None
+                    
+                    if not binary:
+                        # API-based tool - always available
+                        available.append(tool_name)
+                        continue
+                    
+                    if docker_available:
+                        check = docker_runner.exec_raw(['which', binary], timeout=5)
+                        if check.returncode == 0:
+                            available.append(tool_name)
+                        else:
+                            missing.append(tool_name)
+                    else:
+                        # No Docker - check local PATH
+                        if shutil.which(binary):
+                            available.append(tool_name)
+                        else:
+                            missing.append(tool_name)
+                except Exception as e:
+                    missing.append(tool_name)
+                    logger.debug(f"Preflight check error for {tool_name}: {e}")
+        
+        return {'missing': missing, 'available': available, 'total_checked': len(missing) + len(available)}
 
     def load_checkpoint(self) -> bool:
         """Load existing checkpoint if exists"""
@@ -561,6 +634,14 @@ class OrchestratorV2:
         logger.info(f"Starting SWATH scan for {self.domain}")
         self.scan_start_time = time.time()
         self._total_tools_count = self._count_total_tools()
+
+        # Pre-flight tool availability check
+        preflight = self.preflight_tool_check()
+        if preflight['missing']:
+            logger.warning(
+                f"Preflight: {len(preflight['missing'])} tools may not be installed: "
+                f"{', '.join(preflight['missing'])}. Scan will continue but these tools may fail."
+            )
 
         # Try to resume from checkpoint
         if self.checkpoint_file:

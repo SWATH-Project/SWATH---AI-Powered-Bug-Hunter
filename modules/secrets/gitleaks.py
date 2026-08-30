@@ -6,9 +6,9 @@ from core.exceptions import EmptyOutputError
 
 class GitleaksModule(BaseModule):
     def build_command(self, target: str, container_out: str) -> list:
-        # The Docker volume mounts the project at /huntforge
-        # So scan outputs live at /huntforge/output/<domain>
-        source_dir = f"/huntforge/output/{target}"
+        # The Docker volume mounts the project at /swath
+        # So scan outputs live at /swath/output/<target>
+        source_dir = f"/swath/output/{target}"
         return ['gitleaks', 'detect', '--source', source_dir, '--report-path', container_out, '--no-git', '-v']
 
     def run(self, target: str, output_dir: str, tag_manager, config: dict = None) -> dict:

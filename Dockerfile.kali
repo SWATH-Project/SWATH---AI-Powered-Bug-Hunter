@@ -46,28 +46,49 @@ WORKDIR /home/swath
 
 # Install Go-based tools (these go to $GOPATH/bin which is in PATH)
 # Note: continuing on error if a specific tool fails so the rest still install
-RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest || true \
-    && go install -v github.com/owasp-amass/amass/v3/...@v3.18.3 || true \
-    && go install -v github.com/tomnomnom/assetfinder@latest || true \
-    && go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest || true \
-    && go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest || true \
-    && go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest || true \
-    && go install -v github.com/projectdiscovery/katana/cmd/katana@latest || true \
-    && go install -v github.com/lc/gau/v2/cmd/gau@latest || true \
-    && go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest || true \
-    && go install -v github.com/hahwul/dalfox/v2@latest || true \
-    && go install -v github.com/jaeles-project/gospider@latest || true \
-    && go install -v github.com/haccer/subjack/v2/cmd/subjack@latest || true \
-    && nuclei -update-templates 2>/dev/null || true
+RUN set -e; \
+    for tool in \
+        "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest" \
+        "github.com/owasp-amass/amass/v3/...@v3.18.3" \
+        "github.com/tomnomnom/assetfinder@latest" \
+        "github.com/projectdiscovery/httpx/cmd/httpx@latest" \
+        "github.com/projectdiscovery/naabu/v2/cmd/naabu@latest" \
+        "github.com/projectdiscovery/dnsx/cmd/dnsx@latest" \
+        "github.com/projectdiscovery/katana/cmd/katana@latest" \
+        "github.com/lc/gau/v2/cmd/gau@latest" \
+        "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest" \
+        "github.com/hahwul/dalfox/v2@latest" \
+        "github.com/jaeles-project/gospider@latest" \
+        "github.com/haccer/subjack/v2/cmd/subjack@latest" \
+    ; do \
+        echo "Installing Go tool: $tool"; \
+        if ! go install -v "$tool"; then \
+            echo "WARNING: Failed to install $tool - continuing"; \
+        fi; \
+    done; \
+    nuclei -update-templates 2>/dev/null || echo "WARNING: nuclei template update failed - run manually later"
 
 # Install Python tools for the user
 RUN pip3 install --user --break-system-packages --upgrade pip setuptools wheel 2>&1 | grep -v "WARNING" || true \
     && pip3 install --user --break-system-packages srcscan 2>/dev/null || true \
-    && pipx install git+https://github.com/devanshbatham/paramspider.git || true
+    && echo "Installing paramspider via pipx..." \
+    && pipx install git+https://github.com/devanshbatham/paramspider.git || echo "WARNING: paramspider install failed - check manually"
 
 # Verify installations
-RUN echo "Installed tools:" \
-    && ls -1 $(echo $GOPATH)/bin/ | head -20
+RUN echo "Verifying installed tools..." && \
+    echo "Go binaries:" && ls -1 $(echo $GOPATH)/bin/ && \
+    echo "" && \
+    echo "Checking critical tools:" && \
+    for tool in subfinder httpx naabu katana nuclei gau dalfox subjack; do \
+        if command -v "$tool" >/dev/null 2>&1; then \
+            echo "  [OK] $tool"; \
+        else \
+            echo "  [MISSING] $tool - will be skipped during scans"; \
+        fi; \
+    done && \
+    echo "" && \
+    echo "Checking Python tools:" && \
+    python3 -c "import paramspider" 2>/dev/null && echo "  [OK] paramspider" || echo "  [MISSING] paramspider - install manually if needed"
 
 # Copy SWATH project files
 COPY --chown=swath:swath . /home/swath/

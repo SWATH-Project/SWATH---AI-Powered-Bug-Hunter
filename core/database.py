@@ -11,7 +11,11 @@ class Database:
     
     def __init__(self, db_path="~/.swath/history.db"):
         self.db_path = os.path.expanduser(db_path)
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        # Skip directory creation for in-memory databases
+        if self.db_path != ':memory:':
+            db_dir = os.path.dirname(self.db_path)
+            if db_dir:
+                os.makedirs(db_dir, exist_ok=True)
         self.init_db()
 
     def _get_conn(self):
